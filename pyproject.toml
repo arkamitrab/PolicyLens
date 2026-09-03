@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "policylens"
-version = "1.1.0"
+version = "1.2.0"
 description = "Evidence-first document intelligence for synthetic life-insurance products"
 authors = [{name = "Arkamitra Bhattacharyya"}]
 readme = "README.md"
@@ -20,6 +20,9 @@ dependencies = [
   "openai>=1.50,<3",
   "python-dotenv>=1.0,<2",
 ]
+
+[project.urls]
+Repository = "https://github.com/arkamitrab/PolicyLens"
 
 
 [tool.setuptools.packages.find]

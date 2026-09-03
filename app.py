@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import sys
 from pathlib import Path
 
@@ -76,15 +77,28 @@ with st.sidebar:
         accept_multiple_files=True,
     )
     if uploads and st.button("Process uploads", type="primary", width="stretch"):
+        processed_count = 0
         for uploaded in uploads:
-            process_file(uploaded.name, uploaded.getvalue())
-        st.success(f"Processed {len(uploads)} document(s).")
+            try:
+                process_file(uploaded.name, uploaded.getvalue())
+                processed_count += 1
+            except (RuntimeError, ValueError) as exc:
+                st.error(f"Could not process {uploaded.name}: {exc}")
+        if processed_count:
+            st.success(f"Processed {processed_count} document(s).")
 
     use_llm = st.toggle(
         "Use optional LLM synthesis",
         value=False,
         help="Requires OPENAI_API_KEY. Retrieval and citations still run locally.",
     )
+    if shutil.which("tesseract"):
+        st.success("OCR engine ready", icon="✅")
+    else:
+        st.warning(
+            "OCR engine unavailable. Native PDF and text ingestion still work.",
+            icon="⚠️",
+        )
     st.caption("Synthetic demonstration only — not financial advice.")
 
 processed = list(st.session_state.processed.values())
@@ -215,6 +229,28 @@ with dashboard:
                     st.success("No validation exceptions in the current view.")
                 else:
                     st.dataframe(issue_frame, width="stretch", hide_index=True)
+
+            st.markdown("#### Ingestion methods")
+            filtered_ids = {product.document_id for product in filtered_products}
+            methods = [
+                page.extraction_method
+                for item in processed
+                if item.product.document_id in filtered_ids
+                for page in item.pages
+            ]
+            method_frame = (
+                pd.Series(methods, name="Method")
+                .value_counts()
+                .rename_axis("Method")
+                .reset_index(name="Pages")
+            )
+            st.bar_chart(
+                method_frame,
+                x="Method",
+                y="Pages",
+                color="#7c5ce7",
+                width="stretch",
+            )
 
             st.markdown("#### Dashboard data")
             st.dataframe(filtered, width="stretch", hide_index=True)

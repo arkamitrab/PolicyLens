@@ -45,17 +45,19 @@ class DocumentIngestor:
 
     def _ingest_pdf(self, content: bytes) -> list[PageText]:
         try:
-            import fitz
+            import pymupdf
         except ImportError as exc:  # pragma: no cover - depends on deployment
             raise RuntimeError("PDF support requires PyMuPDF.") from exc
 
         pages: list[PageText] = []
-        with fitz.open(stream=content, filetype="pdf") as document:
+        with pymupdf.open(stream=content, filetype="pdf") as document:
             for page_number, page in enumerate(document, start=1):
                 text = page.get_text("text").strip()
                 method = "pdf-text"
                 if len(text) < 40:
-                    pixmap = page.get_pixmap(matrix=fitz.Matrix(2, 2), alpha=False)
+                    pixmap = page.get_pixmap(
+                        matrix=pymupdf.Matrix(2, 2), alpha=False
+                    )
                     text = self._ocr_image(pixmap.tobytes("png"))
                     method = "ocr-fallback"
                 pages.append(PageText(page_number, text, method))

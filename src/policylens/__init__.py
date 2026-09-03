@@ -14,4 +14,4 @@ __all__ = [
 ]
 
 __author__ = "Arkamitra Bhattacharyya"
-__version__ = "1.1.0"
+__version__ = "1.2.0"

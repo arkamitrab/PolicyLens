@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import shutil
 import tempfile
 import unittest
 from pathlib import Path
@@ -98,6 +99,33 @@ class PolicyLensTests(unittest.TestCase):
                 {"Waiting period (days)": 90, "Products": 2},
             ],
         )
+
+    @unittest.skipUnless(shutil.which("tesseract"), "Tesseract is not installed")
+    def test_scanned_image_ocr_extracts_product_record(self):
+        sample = ROOT / "data" / "sample" / "scanned_demo.png"
+        result = self.workflow.process_bytes(sample.name, sample.read_bytes())
+
+        self.assertEqual(result.pages[0].extraction_method, "ocr")
+        self.assertEqual(result.product.product_name, "Wattle Life Essentials")
+        self.assertEqual(result.product.provider, "Wattle Life (Fictitious)")
+        self.assertEqual(result.product.maximum_sum_insured_aud, 1500000)
+        self.assertEqual(result.product.review_status, "Ready")
+        self.assertEqual(result.product.confidence, 1.0)
+
+    @unittest.skipUnless(shutil.which("tesseract"), "Tesseract is not installed")
+    def test_scanned_pdf_page_uses_ocr_fallback(self):
+        import pymupdf
+
+        image = (ROOT / "data" / "sample" / "scanned_demo.png").read_bytes()
+        with pymupdf.open() as document:
+            page = document.new_page(width=1200, height=800)
+            page.insert_image(page.rect, stream=image)
+            pdf_bytes = document.tobytes()
+
+        result = self.workflow.process_bytes("scanned_demo.pdf", pdf_bytes)
+        self.assertEqual(result.pages[0].extraction_method, "ocr-fallback")
+        self.assertEqual(result.product.product_name, "Wattle Life Essentials")
+        self.assertEqual(result.product.review_status, "Ready")
 
 
 if __name__ == "__main__":
