@@ -17,18 +17,20 @@ document processing, data validation, grounded retrieval, responsible use of
 LLMs, analytics dashboards, and workflow automation. It is a portfolio
 application—not an underwriting, claims, or financial-advice system.
 
-## What it does
+## Core functionality
 
-- reads Markdown, text, native PDF, scanned PDF, PNG, JPG, and TIFF files;
-- applies Tesseract OCR to images and scanned PDF pages;
-- extracts product names, providers, cover types, age limits, insured amounts,
-  waiting periods, benefit periods, premiums, and exclusions;
-- sends incomplete or inconsistent records to a visible review queue;
-- compares products and exports the results to CSV;
-- answers questions from retrieved source evidence with page citations;
-- abstains when the available evidence is insufficient;
-- presents portfolio and extraction results in an analytics dashboard; and
-- records document-processing and Q&A activity in SQLite.
+| Capability | Implementation | Why it matters |
+|---|---|---|
+| Multi-format ingestion | Markdown, text, native PDFs, scanned PDFs, PNG, JPG, and TIFF | Handles varied reference formats |
+| OCR | Tesseract, Pillow, and page-rendering fallback | Recovers text from images and scanned PDF pages |
+| Structured extraction | Deterministic extraction of product, cover, age, benefit, premium, and exclusion fields | Creates consistent reference data |
+| Validation and review | Required-field, range, and completeness checks | Makes missing or inconsistent data visible |
+| Grounded Q&A | TF-IDF retrieval, page citations, and weak-evidence abstention | Keeps answers traceable to source evidence |
+| Optional LLM synthesis | OpenAI synthesis restricted to retrieved evidence | Adds concise synthesis without replacing controls |
+| Analytics dashboard | KPIs, filters, charts, exception tables, and CSV export | Shows portfolio readiness and extracted values |
+| Product comparison | Side-by-side structured product table | Supports quick review across products |
+| Audit trail | SQLite document-processing and question events | Preserves operational traceability |
+| Delivery controls | Automated tests, GitHub Actions, Docker, and Streamlit configuration | Makes the project reproducible and deployable |
 
 ## Sample dashboard results
 
@@ -75,10 +77,26 @@ fewer than 40 embedded characters, the page is rendered at higher resolution
 and processed using the `ocr-fallback` path. Both image OCR and scanned-PDF OCR
 fallback are covered by automated tests.
 
-## Processing flow
+## Architecture
 
-**Documents → native extraction or OCR → page-aware evidence chunks → structured
-fields and validation → dashboard and grounded Q&A → SQLite audit trail**
+```mermaid
+flowchart TD
+    A[PDF, image, or text] --> B[Native extraction or OCR]
+    B --> C[Page-aware evidence chunks]
+    C --> D[Structured field extraction]
+    D --> E[Validation and review queue]
+    C --> F[Grounded retrieval]
+    F --> G[Extractive or optional LLM answer]
+    D --> H[Analytics dashboard]
+    E --> I[(SQLite audit trail)]
+    G --> I
+```
+
+The workflow is coordinated by `PolicyWorkflow`. Native extraction and OCR
+preserve page-level provenance before the content is chunked. Structured records
+and validation results feed the comparison and dashboard views, while the same
+evidence chunks support grounded retrieval. Processing and question events are
+written to SQLite.
 
 The deterministic extraction and retrieval workflow works without an API key.
 OpenAI synthesis is optional and only receives retrieved evidence.
@@ -198,6 +216,21 @@ PolicyLens/
 ├── .github/workflows/ci.yml       # Continuous integration
 └── Dockerfile                     # Container deployment with OCR support
 ```
+
+## Key design decisions
+
+1. **Deterministic core:** extraction, validation, retrieval, comparison, and
+   dashboard reporting remain usable without an LLM or API key.
+2. **Evidence before answers:** page-aware chunks and citations let reviewers
+   inspect the source behind an extracted value or response.
+3. **Visible uncertainty:** missing fields and weak retrieval results produce a
+   review task or abstention instead of a confident-looking guess.
+4. **Human review:** extracted records are reference drafts and remain subject
+   to validation against the original document.
+5. **Separable components:** ingestion, extraction, analytics, retrieval, and
+   auditing are isolated modules that can be tested or replaced independently.
+6. **Scalable path:** object storage, a managed database, a vector index, and
+   queued processing could replace the local demo components in production.
 
 ## Responsible use
 
