@@ -1,268 +1,211 @@
-<p align="center">
-  <img src="docs/policylens-banner.svg" alt="PolicyLens — evidence-first document intelligence" width="100%">
-</p>
-
-<p align="center">
-  <a href="https://github.com/arkamitrab/PolicyLens/actions/workflows/ci.yml">
-    <img alt="Tests" src="https://github.com/arkamitrab/PolicyLens/actions/workflows/ci.yml/badge.svg">
-  </a>
-  <img alt="Python 3.11+" src="https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&amp;logoColor=white">
-  <img alt="Streamlit" src="https://img.shields.io/badge/Streamlit-1.63%2B-FF4B4B?logo=streamlit&amp;logoColor=white">
-  <img alt="OCR: Tesseract" src="https://img.shields.io/badge/OCR-Tesseract-5C3EE8">
-  <img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-2878A8">
-</p>
-
 # PolicyLens
 
-PolicyLens is an evidence-first document-intelligence workbench for synthetic
-life-insurance product information. It accepts native documents and scanned
-files, extracts structured product terms, identifies records that need human
-review, supports citation-grounded Q&A, and turns the resulting portfolio into
-an interactive analytics dashboard.
+Evidence-first document intelligence for synthetic life-insurance product
+information.
 
-**Created by [Arkamitra Bhattacharyya](https://github.com/arkamitrab).**
+Created by [Arkamitra Bhattacharyya](https://github.com/arkamitrab).
 
-> All bundled insurers, products, limits, and terms are fictitious. PolicyLens
-> is a technical demonstration, not financial advice and not a representation
-> of Munich Re or any insurer.
+## Purpose
 
-## Why PolicyLens
+Life-insurance product information often arrives in PDFs, scanned pages,
+images, and inconsistently formatted reference documents. PolicyLens shows how
+these sources can be converted into structured, traceable product data without
+hiding uncertainty.
 
-Product and operational references often arrive as PDFs, scans, images, and
-inconsistently formatted text. Extracting text is only the first step: insurance
-teams also need provenance, validation, exception handling, auditability, and a
-clear way to inspect portfolio-level results.
+The project is designed to demonstrate practical skills in Python, OCR,
+document processing, data validation, grounded retrieval, responsible use of
+LLMs, analytics dashboards, and workflow automation. It is a portfolio
+application—not an underwriting, claims, or financial-advice system.
 
-PolicyLens demonstrates that end-to-end workflow while keeping a deterministic,
-fully offline core. Generative AI is optional and is restricted to retrieved
-source evidence.
+## What it does
 
-## Key capabilities
+- reads Markdown, text, native PDF, scanned PDF, PNG, JPG, and TIFF files;
+- applies Tesseract OCR to images and scanned PDF pages;
+- extracts product names, providers, cover types, age limits, insured amounts,
+  waiting periods, benefit periods, premiums, and exclusions;
+- sends incomplete or inconsistent records to a visible review queue;
+- compares products and exports the results to CSV;
+- answers questions from retrieved source evidence with page citations;
+- abstains when the available evidence is insufficient;
+- presents portfolio and extraction results in an analytics dashboard; and
+- records document-processing and Q&A activity in SQLite.
 
-| Capability | Implementation | Outcome |
-|---|---|---|
-| OCR and document ingestion | Tesseract OCR, Pillow, and PyMuPDF | Reads images, native PDFs, scanned PDF pages, Markdown, and text |
-| Structured extraction | Deterministic parsing into a life-insurance product schema | Produces comparable, reviewable records |
-| Data-quality controls | Required-field, range, and completeness checks | Routes incomplete or inconsistent records to review |
-| Grounded Q&A | TF-IDF retrieval, page citations, and weak-evidence abstention | Keeps answers traceable to their source |
-| Optional LLM synthesis | OpenAI Responses API over retrieved evidence only | Adds concise synthesis without removing controls |
-| Analytics dashboard | KPIs, charts, filters, exception tables, and CSV export | Shows readiness and portfolio insights |
-| Audit trail | SQLite processing and Q&A event logs | Preserves operational traceability |
-| Deployment | GitHub Actions, Streamlit configuration, and Docker | Provides a reproducible delivery path |
+## Sample dashboard results
 
-## OCR workflow
+Loading the three bundled synthetic product documents produces the following
+dashboard summary:
 
-OCR is a built-in capability, not a placeholder.
+| Metric | Sample result |
+|---|---:|
+| Products processed | 3 |
+| Records ready for use | 3 of 3 (100%) |
+| Mean required-field coverage | 100% |
+| Validation exceptions | 0 |
+| Evidence chunks created | 6 |
 
-- **Image uploads:** PNG, JPG, JPEG, TIFF, and TIF files are normalised with
-  Pillow and processed with Tesseract.
-- **Native PDFs:** PyMuPDF extracts embedded text directly.
-- **Scanned PDFs:** if a PDF page contains fewer than 40 embedded characters,
-  PolicyLens renders that page at higher resolution and automatically applies
-  OCR fallback.
-- **Provenance:** every page records `native-text`, `pdf-text`, `ocr`, or
-  `ocr-fallback` as its extraction method.
-- **Validation:** OCR output is passed through the same schema extraction and
-  human-review checks as native text.
+| Product | Maximum sum insured | Waiting-period options | Status |
+|---|---:|---|---|
+| HarbourLife Secure Term | AUD $3,000,000 | 0 days | Ready |
+| Southern Horizon Income Protection | AUD $30,000 | 30, 60, and 90 days | Ready |
+| Coral Mutual Trauma Select | AUD $2,000,000 | 90 days | Ready |
 
-The repository includes `data/sample/scanned_demo.png`. The automated OCR test
-extracts **Wattle Life Essentials**, its provider, cover limits, and policy
-fields from that image, then verifies that the resulting record is ready for
-review.
+The waiting-period chart shows one product at 0 days, one at 30 days, one at 60
+days, and two at 90 days. Dashboard filters allow the results to be narrowed by
+provider and review status, and the filtered data can be downloaded as CSV.
 
-## Architecture
+These values come from the bundled fictitious documents and demonstrate the
+workflow; they are not performance benchmarks or real insurance products.
 
-```mermaid
-flowchart TD
-    A[Text, PDF, or image] --> B{Embedded text available?}
-    B -->|Yes| C[Native text extraction]
-    B -->|No| D[Tesseract OCR]
-    C --> E[Page-aware evidence chunks]
-    D --> E
-    E --> F[Schema extraction and validation]
-    E --> G[Grounded retrieval and Q&A]
-    F --> H[Analytics dashboard]
-    F --> I[(SQLite audit trail)]
-    G --> I
-```
+## OCR example
 
-## Analytics dashboard
+The repository includes `data/sample/scanned_demo.png`. When it is uploaded,
+PolicyLens produces this result:
 
-The dashboard turns processed records into an operational view with:
+| OCR output | Extracted value |
+|---|---|
+| Extraction method | `ocr` |
+| Product | Wattle Life Essentials |
+| Provider | Wattle Life (Fictitious) |
+| Maximum sum insured | AUD $1,500,000 |
+| Field coverage | 100% |
+| Review status | Ready |
 
-- products in scope, readiness rate, and mean extraction confidence;
-- maximum sum insured by product;
-- field-level evidence coverage;
-- waiting-period availability;
-- native-text and OCR ingestion-method counts;
-- validation exceptions and review gaps;
-- audited grounded-question volume; and
-- filtered CSV export.
+For PDF files, PolicyLens first attempts native text extraction. If a page has
+fewer than 40 embedded characters, the page is rendered at higher resolution
+and processed using the `ocr-fallback` path. Both image OCR and scanned-PDF OCR
+fallback are covered by automated tests.
 
-Filters allow the portfolio to be narrowed by provider and review status.
+## Processing flow
 
-## Quick start
+**Documents → native extraction or OCR → page-aware evidence chunks → structured
+fields and validation → dashboard and grounded Q&A → SQLite audit trail**
+
+The deterministic extraction and retrieval workflow works without an API key.
+OpenAI synthesis is optional and only receives retrieved evidence.
+
+## Run locally
 
 ### macOS
 
 ```bash
 git clone https://github.com/arkamitrab/PolicyLens.git
 cd PolicyLens
+
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
+
 brew install tesseract
 python -m streamlit run app.py
 ```
 
-### Windows PowerShell
+Open `http://localhost:8501`.
 
-```powershell
-git clone https://github.com/arkamitrab/PolicyLens.git
-cd PolicyLens
-py -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
-python -m streamlit run app.py
-```
+Tesseract is required only for images and scanned-PDF OCR. Native text and
+text-based PDFs continue to work without it.
 
-Tesseract must also be installed on Windows and available on the system `PATH`
-for image and scanned-PDF OCR.
+## Try the application
 
-Open `http://localhost:8501` after Streamlit starts.
-
-## Run the demos
-
-### Structured portfolio and dashboard
+### Product dashboard
 
 1. Select **Load three synthetic products** in the sidebar.
-2. Open **Analytics dashboard** to inspect coverage and product metrics.
-3. Open **Product comparison** to compare extracted terms.
-4. Ask `Which product offers a 30-day waiting period?` under **Grounded Q&A**.
+2. Open **Analytics dashboard**.
+3. Review product limits, field coverage, waiting periods, ingestion methods,
+   and validation exceptions.
+4. Open **Product comparison** to inspect the structured records.
 
-### OCR demonstration
+### OCR
 
-1. Upload `data/sample/scanned_demo.png` from the sidebar.
+1. Upload `data/sample/scanned_demo.png`.
 2. Select **Process uploads**.
 3. Confirm that **Wattle Life Essentials** appears in the portfolio.
 4. Open **Review & audit** and verify that the extraction method is `ocr`.
-5. Open **Analytics dashboard** to see the OCR page represented under
-   **Ingestion methods**.
 
-The sidebar displays **OCR engine ready** whenever the Tesseract executable is
-available.
+### Grounded Q&A
 
-## Deploy on Streamlit Community Cloud
+Load the sample products and ask:
 
-The repository is prepared for Streamlit Community Cloud:
+```text
+Which product offers a 30-day waiting period?
+```
 
-- `requirements.txt` installs Python dependencies, including `pytesseract`;
-- `packages.txt` installs the system-level `tesseract-ocr` executable; and
-- `.streamlit/config.toml` supplies the application theme and server settings.
+The response includes source citations. Questions unsupported by the documents
+produce an abstention instead of a guessed answer.
 
-To deploy:
+## Optional LLM mode
 
-1. Sign in to <https://share.streamlit.io> with GitHub.
-2. Select **Create app**.
-3. Choose `arkamitrab/PolicyLens` and branch `main`.
-4. Set the entrypoint to `app.py`.
-5. Select **Deploy**.
-
-No API key is required for OCR, extraction, retrieval, validation, comparison,
-or the dashboard.
-
-## Optional grounded LLM mode
-
-The default answerer works locally. To enable evidence-constrained OpenAI
-synthesis, copy the environment template:
+Copy the environment template:
 
 ```bash
 cp .env.example .env
 ```
 
-Then add:
+Add your values without committing the file:
 
 ```dotenv
 OPENAI_API_KEY=your-key
 OPENAI_MODEL=gpt-5-mini
 ```
 
-The `.env` file is excluded from Git. Never commit an API key. For a cloud
-deployment, add the same values through the platform's secrets interface.
+OCR, extraction, validation, the dashboard, and extractive grounded Q&A do not
+require an OpenAI API key.
 
 ## Tests
 
 ```bash
 PYTHONPATH=src python -m unittest discover -s tests -v
-PYTHONPATH=src python scripts/run_demo.py
 ```
 
-The nine tests cover:
+The nine tests cover structured extraction, image OCR, scanned-PDF OCR fallback,
+validation, citations, weak-evidence abstention, deduplication, audit persistence,
+and dashboard summaries.
 
-- structured product extraction;
-- scanned-image OCR;
-- scanned-PDF OCR fallback;
-- source-grounded answers and citations;
-- weak-evidence abstention;
-- validation and review routing;
-- document deduplication;
-- SQLite audit persistence; and
-- dashboard summaries.
+GitHub Actions runs the test suite on Python 3.11 and 3.12. Tesseract is installed
+in the workflow so both OCR paths are tested on every push and pull request to
+`main`.
 
-GitHub Actions installs Tesseract and runs the suite on Python 3.11 and 3.12 for
-every push and pull request to `main`.
+## Deploy on Streamlit Community Cloud
+
+1. Sign in to <https://share.streamlit.io> with GitHub.
+2. Select **Create app**.
+3. Choose `arkamitrab/PolicyLens`, branch `main`, and entrypoint `app.py`.
+4. Select **Deploy**.
+
+The root-level `packages.txt` installs the Tesseract executable on Streamlit
+Community Cloud. `requirements.txt` installs the Python dependencies. No secret
+is needed unless optional LLM synthesis is enabled.
 
 ## Docker
-
-The Docker image installs Tesseract, so OCR works inside the container:
 
 ```bash
 docker build -t policylens .
 docker run --rm -p 8501:8501 policylens
 ```
 
-Then open `http://localhost:8501`.
+The Docker image includes Tesseract, so OCR works inside the container.
 
-## Repository structure
+## Project structure
 
 ```text
 PolicyLens/
-├── .github/workflows/ci.yml       # Python and OCR tests
-├── .streamlit/config.toml         # UI and server configuration
-├── app.py                         # Streamlit application and dashboard
-├── data/sample/                   # Synthetic references and OCR test image
-├── docs/policylens-banner.svg     # README banner
+├── app.py                         # Streamlit interface and dashboard
+├── data/sample/                   # Synthetic documents and OCR image
 ├── packages.txt                   # Tesseract for Streamlit Cloud
-├── scripts/run_demo.py            # Offline end-to-end demonstration
-├── src/policylens/
-│   ├── agents.py                  # Workflow coordination
-│   ├── analytics.py               # Dashboard summaries
-│   ├── audit.py                   # SQLite persistence
-│   ├── extract.py                 # Field extraction and validation
-│   ├── ingest.py                  # Native text, PDF, and OCR ingestion
-│   ├── llm.py                     # Optional grounded LLM synthesis
-│   ├── models.py                  # Domain models
-│   └── retrieval.py               # Retrieval and citations
+├── requirements.txt               # Python dependencies
+├── src/policylens/                # Ingestion, extraction, retrieval, and audit
 ├── tests/test_policylens.py       # Nine automated tests
-├── Dockerfile                     # Container deployment with Tesseract
-├── LICENSE                        # MIT licence
-└── requirements.txt               # Python dependencies
+├── .github/workflows/ci.yml       # Continuous integration
+└── Dockerfile                     # Container deployment with OCR support
 ```
 
-## Responsible-use boundaries
+## Responsible use
 
-- Do not upload confidential, personal, or commercially sensitive information
-  to a public deployment.
-- Treat extracted values as draft reference data until reviewed against source
-  evidence.
-- Do not use this application for underwriting, claims decisions, financial
-  advice, or automated eligibility decisions.
-- Use licensed and approved source documents in a production environment.
+All bundled insurers, products, values, and terms are fictitious. Do not upload
+confidential information to a public deployment. Extracted values should be
+reviewed against their sources and must not be used for underwriting, claims,
+eligibility, or financial-advice decisions.
 
-## Author and licence
+## Licence
 
-Created by **Arkamitra Bhattacharyya**.
-
-Released under the [MIT License](LICENSE).
+MIT © 2026 Arkamitra Bhattacharyya.
